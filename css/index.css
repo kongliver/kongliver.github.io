@@ -620,8 +620,6 @@ body::after {
   left: 0;
   width: 100%;
   height: 100%;
-  position: fixed;
-  height: 100vh;
   z-index: -2;
   background: url("/assets/body-bg.jpg") no-repeat center/cover;
 }
