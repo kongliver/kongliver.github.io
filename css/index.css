@@ -697,7 +697,7 @@ body::before {
 }
 .content-wrap {
   width: calc(100% - 330px);
-  float: left;
+  float: right;
 }
 .content-wrap--noside {
   float: none;
@@ -1124,7 +1124,7 @@ body::before {
 }
 .sidebar-wrap {
   width: 300px;
-  float: right;
+  float: left;
 }
 .sidebar-nav {
   padding-bottom: 1em;
@@ -1183,6 +1183,9 @@ body::before {
 .sidebar-toc ol {
   margin: 0;
   padding-left: 1em;
+}
+.sidebar-ov > div + div {
+  border-top: 1px dashed var(--color-gray-300);
 }
 .sidebar-ov-author {
   width: 100%;
