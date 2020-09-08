@@ -636,7 +636,7 @@ body::before {
   position: fixed;
   height: 100vh;
   z-index: -1;
-  background-color: rgba(0,0,0,0.3);
+  background-color: rgba(0,0,0,0.04);
 }
 .nightmode body::before {
   background-color: rgba(0,0,0,0.6);
