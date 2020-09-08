@@ -636,7 +636,7 @@ body::before {
   position: fixed;
   height: 100vh;
   z-index: -1;
-  background-color: rgba(0,0,0,0.1);
+  background-color: rgba(0,0,0,0.3);
 }
 .nightmode body::before {
   background-color: rgba(0,0,0,0.6);
@@ -1183,9 +1183,6 @@ body::before {
 .sidebar-toc ol {
   margin: 0;
   padding-left: 1em;
-}
-.sidebar-ov > div + div {
-  border-top: 1px dashed var(--color-gray-300);
 }
 .sidebar-ov-author {
   width: 100%;
