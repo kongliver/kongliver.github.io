@@ -2851,12 +2851,12 @@ html.nightmode {
   font-size: 0.9em;
   color: #999;
 }
-@media (min-width: 1150px) {
+@media (min-width: 1318px) {
   .header-nav-inner {
-    width: 1150px;
+    width: 1318px;
   }
   .main-inner {
-    width: 1150px;
+    width: 1318px;
   }
 }
 @media (min-width: 991.98px) {
