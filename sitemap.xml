@@ -2,6 +2,27 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://www.lyzhxlove.top/tags/index.html</loc>
+    
+    <lastmod>2020-09-15</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.lyzhxlove.top/categories/index.html</loc>
+    
+    <lastmod>2020-09-15</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://www.lyzhxlove.top/2020/09/15/Java%E4%B9%8BNIO%E5%88%9D%E6%8E%A2/</loc>
+    
+    <lastmod>2020-09-15</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/</loc>
     
     <lastmod>2020-09-15</lastmod>
@@ -36,20 +57,6 @@
     
   </url>
   
-  <url>
-    <loc>https://www.lyzhxlove.top/tags/index.html</loc>
-    
-    <lastmod>2020-09-07</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://www.lyzhxlove.top/categories/index.html</loc>
-    
-    <lastmod>2020-09-07</lastmod>
-    
-  </url>
-  
 
   <url>
     <loc>https://www.lyzhxlove.top/</loc>
@@ -61,6 +68,13 @@
   
   <url>
     <loc>https://www.lyzhxlove.top/tags/Java/</loc>
+    <lastmod>2020-09-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.lyzhxlove.top/tags/NIO/</loc>
     <lastmod>2020-09-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
@@ -83,7 +97,21 @@
   </url>
   
   <url>
+    <loc>https://www.lyzhxlove.top/categories/Java/IO/</loc>
+    <lastmod>2020-09-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
     <loc>https://www.lyzhxlove.top/categories/Java/Springboot/</loc>
+    <lastmod>2020-09-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+  
+  <url>
+    <loc>https://www.lyzhxlove.top/categories/Java%E5%9F%BA%E7%A1%80/</loc>
     <lastmod>2020-09-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>

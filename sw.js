@@ -24,6 +24,8 @@ var precacheUrls = [];
 
   precacheUrls.push('/');
 
+  precacheUrls.push('/2020/09/15/Java之NIO初探/');
+
   precacheUrls.push('/2020/09/15/SpringBoot-2-x-一个项目中使用RedisTemplate操作多个Redis库/');
 
   precacheUrls.push('/2020/09/15/Springboot项目同时支持http和https访问/');
