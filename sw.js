@@ -24,6 +24,8 @@ var precacheUrls = [];
 
   precacheUrls.push('/');
 
+  precacheUrls.push('/2020/09/15/Springboot项目同时支持http和https访问/');
+
   precacheUrls.push('/2020/08/16/test-my-blog/');
 
   precacheUrls.push('/2020/08/14/hello-world/');
