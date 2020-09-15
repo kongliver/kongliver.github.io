@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="zh-CN"><head><link rel=manifest href=/manifest.json><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#ffffff"><link rel="manifest" href="/manifest.json?v=2.1.1"><link rel="icon" href="/assets/favicon/favicon-16x16.ico?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/assets/favicon/favicon-32x32.ico?v=2.1.1" type="image/png" sizes="32x32"><meta name="google-site-verification" content="MUF0Rt6V-U-Yt0gCXwwA3wxu7VfPs37Pyso2BH0anrE"><meta name="baidu-site-verification" content="code-evYy45A5k6"><meta name="description" content="背景：我们都知道Redis有16个数据库可以使用，在项目中需要用到redis的多个库，每次使用时再去通过一堆代码切换未免觉得太过麻烦，所以直接通过配置注入多个RedisTemplate，需要用到哪个库时直接使用对应的RedisTemplate即可">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SpringBoot 2.x 一个项目中使用RedisTemplate操作多个Redis库">
+<meta property="og:url" content="https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/index.html">
+<meta property="og:site_name" content="极客空的小博客">
+<meta property="og:description" content="背景：我们都知道Redis有16个数据库可以使用，在项目中需要用到redis的多个库，每次使用时再去通过一堆代码切换未免觉得太过麻烦，所以直接通过配置注入多个RedisTemplate，需要用到哪个库时直接使用对应的RedisTemplate即可">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200122172854752.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjIzMzUwMA==,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-09-15T09:37:13.000Z">
+<meta property="article:modified_time" content="2020-09-15T09:44:05.200Z">
+<meta property="article:author" content="kongliver">
+<meta property="article:tag" content="Java">
+<meta property="article:tag" content="Springboot">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200122172854752.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjIzMzUwMA==,size_16,color_FFFFFF,t_70"><title>SpringBoot 2.x 一个项目中使用RedisTemplate操作多个Redis库 | 极客空的小博客</title><link ref="canonical" href="https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="dns-prefetch" href="https://hm.baidu.com"><script src="https://www.googletagmanager.com/gtag/js?id=UA-177804942-1" async="" data-pjax=""></script><script data-pjax="">if (window.location.hostname !== 'localhost') {
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'UA-177804942-1');
+}</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?fb7712e083d1c4ddec8cd43af8962ba7';
+  hm.async = true;
+
+  if (true) {
+    hm.setAttribute('data-pjax', '');
+  }
+  var s = document.getElementsByTagName('script')[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();</script><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"ocean","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.0.2"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-feather-alt"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-fingerprint"></i></span><span class="header-nav-menu-item__text">个人</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/about/"><span class="header-nav-submenu-item__icon"><i class="far fa-id-card"></i></span><span class="header-nav-submenu-item__text">关于</span></a></div></div></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-angle-double-down"></i></span><span class="header-nav-menu-item__text">其他...</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/leavenote/"><span class="header-nav-submenu-item__icon"><i class="fas fa-book-open"></i></span><span class="header-nav-submenu-item__text">留言板</span></a></div></div></div></div><div class="header-nav-search"><span class="header-nav-search__icon"><i class="fas fa-search"></i></span><span class="header-nav-search__text">搜索</span></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner" style="background: url(/assets/blogpicture/valais.jpg) no-repeat center/cover;"><div class="header-banner-info"><div class="header-banner-info__title">极客空的小博客</div><div class="header-banner-info__subtitle">begin with hello world,end in the world I love</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">SpringBoot 2.x 一个项目中使用RedisTemplate操作多个Redis库</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-15</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-15</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">8分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body"><p>背景：我们都知道Redis有16个数据库可以使用，在项目中需要用到redis的多个库，每次使用时再去通过一堆代码切换未免觉得太过麻烦，所以直接通过配置注入多个RedisTemplate，需要用到哪个库时直接使用对应的RedisTemplate即可</p>
+<a id="more"></a>
+
+
+        <h4 id="首先是配置文件"   >
+          <a href="#首先是配置文件" class="heading-link"><i class="fas fa-link"></i></a>首先是配置文件</h4>
+      <p><strong>在application.properties中添加redis的相关配置</strong></p>
+<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">#redis多数据配置</span><br><span class="line">redis.database.test1=<span class="number">1</span></span><br><span class="line">redis.database.test2=<span class="number">2</span></span><br><span class="line">redis.host=<span class="number">127.0</span>.<span class="number">0.1</span></span><br><span class="line">redis.port=<span class="number">6379</span></span><br><span class="line">redis.password=root</span><br><span class="line">##连接超时，此处使用单位秒</span><br><span class="line">redis.timeout=<span class="number">180</span></span><br><span class="line">##连接池配置</span><br><span class="line">redis.pool.max-active=<span class="number">8</span></span><br><span class="line">redis.pool.max-idle=<span class="number">8</span></span><br><span class="line">redis.pool.min-idle=<span class="number">0</span></span><br><span class="line">redis.pool.max-wait=-<span class="number">1</span></span><br></pre></td></tr></table></div></figure>
+<ul>
+<li>数据库的选择可根据业务需求配置多个，此处测试只配置了两个。</li>
+<li>连接池的配置都是使用的默认值，如有其他需求可自行更改</li>
+</ul>
+
+        <h4 id="然后通过配置类注入RedisTemplate"   >
+          <a href="#然后通过配置类注入RedisTemplate" class="heading-link"><i class="fas fa-link"></i></a>然后通过配置类注入RedisTemplate</h4>
+      <ul>
+<li>先看代码<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.commons.pool2.impl.GenericObjectPoolConfig;</span><br><span class="line"><span class="keyword">import</span> org.springframework.beans.factory.annotation.Value;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Bean;</span><br><span class="line"><span class="keyword">import</span> org.springframework.context.annotation.Configuration;</span><br><span class="line"><span class="keyword">import</span> org.springframework.data.redis.connection.RedisPassword;</span><br><span class="line"><span class="keyword">import</span> org.springframework.data.redis.connection.RedisStandaloneConfiguration;</span><br><span class="line"><span class="keyword">import</span> org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;</span><br><span class="line"><span class="keyword">import</span> org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;</span><br><span class="line"><span class="keyword">import</span> org.springframework.data.redis.core.StringRedisTemplate;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.time.Duration;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@date</span> 2020/1/21</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@Configuration</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RedisConfiguration</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.database.test1&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> test1Database;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.database.test2&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> test2Database;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.host&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> String host;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.port&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> port;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.password&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> String password;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.timeout&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> timeout;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.pool.max-active&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> maxActive;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.pool.max-idle&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> maxIdle;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.pool.min-idle&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> minIdle;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Value(&quot;$&#123;redis.pool.max-wait&#125;&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> maxWait;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> GenericObjectPoolConfig <span class="title">getPoolConfig</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 配置redis连接池</span></span><br><span class="line">        GenericObjectPoolConfig poolConfig = <span class="keyword">new</span> GenericObjectPoolConfig();</span><br><span class="line">        poolConfig.setMaxTotal(maxActive);</span><br><span class="line">        poolConfig.setMaxIdle(maxIdle);</span><br><span class="line">        poolConfig.setMinIdle(minIdle);</span><br><span class="line">        poolConfig.setMaxWaitMillis(maxWait);</span><br><span class="line">        <span class="keyword">return</span> poolConfig;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean(name = &quot;test1RedisTemplate&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> StringRedisTemplate <span class="title">getTest1RedisTemplate</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="keyword">return</span> getStringRedisTemplate(test1Database);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean(name = &quot;test2RedisTemplate&quot;)</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> StringRedisTemplate <span class="title">getTest2RedisTemplate</span><span class="params">()</span></span>&#123;</span><br><span class="line">        <span class="comment">// 构建工厂对象</span></span><br><span class="line">        <span class="keyword">return</span> getStringRedisTemplate(test2Database);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> StringRedisTemplate <span class="title">getStringRedisTemplate</span><span class="params">(<span class="keyword">int</span> database)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 构建工厂对象</span></span><br><span class="line">        RedisStandaloneConfiguration configuration = <span class="keyword">new</span> RedisStandaloneConfiguration();</span><br><span class="line">        configuration.setHostName(host);</span><br><span class="line">        configuration.setPort(port);</span><br><span class="line">        configuration.setPassword(RedisPassword.of(password));</span><br><span class="line">        LettucePoolingClientConfiguration clientConfiguration = LettucePoolingClientConfiguration.builder()</span><br><span class="line">                .commandTimeout(Duration.ofSeconds(timeout)).poolConfig(getPoolConfig()).build();</span><br><span class="line">        LettuceConnectionFactory factory = <span class="keyword">new</span> LettuceConnectionFactory(configuration, clientConfiguration);</span><br><span class="line">        <span class="comment">// 设置使用的redis数据库</span></span><br><span class="line">        factory.setDatabase(database);</span><br><span class="line">        <span class="comment">// 重新初始化工厂</span></span><br><span class="line">        factory.afterPropertiesSet();</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> StringRedisTemplate(factory);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+        <h6 id="解释几个地方："   >
+          <a href="#解释几个地方：" class="heading-link"><i class="fas fa-link"></i></a>解释几个地方：</h6>
+      </li>
+</ul>
+<ol>
+<li>SpringBoot 2.x 之后连接redis驱动默认使用的是<strong>lettuce</strong>，而非之前的<strong>jedis</strong>，这里简要说一下两个驱动的区别：</li>
+</ol>
+<ul>
+<li><p>jedis采用的是直连redis server，在多个线程之间共用一个jedis实例时，是线程不安全的。如果想避免线程不安全，可以使用连接池pool，这样每个线程单独使用一个jedis实例。由此带来的问题是，如果线程数过多，带来redis server的负载加大。有点类似于BIO的模式。</p>
+</li>
+<li><p>lettuce采用netty连接redis server，实例可以在多个线程间共享，不存在线程不安全的情况，这样可以减少线程数量。在特殊情况下，lettuce也可以使用多个实例。有点类似于NIO的模式</p>
+</li>
+</ul>
+<ol start="2">
+<li>翻看源码<strong>lettuce</strong>驱动的连接池是依赖于apache的commons-pool2中的GenericObjectPoolConfig对象实现的，而SpringBoot对Redis的Starter中未引入该依赖<figure class="highlight"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></div></figure>
+所以如果要配置连接池并且项目中未通过其他组件引入commons-pool2依赖时需要手动引入该依赖<figure class="highlight"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;commons-pool2&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;2.8.0&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></div></figure>
+
+        <h4 id="最后是测试环节"   >
+          <a href="#最后是测试环节" class="heading-link"><i class="fas fa-link"></i></a>最后是测试环节</h4>
+      </li>
+</ol>
+<ul>
+<li>直接使用SpringBoot的Junit测试，分别使用两个RedisTemplate操作Redis<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootTest</span></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RedisdemoApplicationTests</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Resource(name = &quot;test1RedisTemplate&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> StringRedisTemplate test1RedisTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Resource(name = &quot;test2RedisTemplate&quot;)</span></span><br><span class="line">    <span class="keyword">private</span> StringRedisTemplate test2RedisTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Test</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testRedisTemplate</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 测试用两个模板向redis中存值</span></span><br><span class="line">        test1RedisTemplate.opsForValue().set(<span class="string">&quot;name&quot;</span>, <span class="string">&quot;kong&quot;</span>);</span><br><span class="line">        test2RedisTemplate.opsForValue().set(<span class="string">&quot;age&quot;</span>, <span class="string">&quot;20&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure></li>
+<li>查看Redis库看是否操作成功<br>
+        <img     class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://img-blog.csdnimg.cn/20200122172854752.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjIzMzUwMA==,size_16,color_FFFFFF,t_70"  style="width: image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,tepx;height: t_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dlaXhpbl80MjIzMzUwMApx;"  alt="在这里插入图片描述">
+      </li>
+<li>可以看到Redis两个库中均已存入相应的值，说明RedisTemplate生效</li>
+</ul>
+<blockquote>
+<p>至此项目中就实现了可以使用多个Redis库的操作</p>
+</blockquote>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://www.lyzhxlove.top">kongliver</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/">https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://www.lyzhxlove.top/tags/Java/">Java</a></span><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://www.lyzhxlove.top/tags/Springboot/">Springboot</a></span></div><nav class="post-paginator paginator"><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/15/Springboot%E9%A1%B9%E7%9B%AE%E5%90%8C%E6%97%B6%E6%94%AF%E6%8C%81http%E5%92%8Chttps%E8%AE%BF%E9%97%AE/"><span class="paginator-prev__text">Springboot项目同时支持http和https访问</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div><div class="comments" id="comments"><div id="valine-container"></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%A6%96%E5%85%88%E6%98%AF%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="toc-text">
+          首先是配置文件</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%84%B6%E5%90%8E%E9%80%9A%E8%BF%87%E9%85%8D%E7%BD%AE%E7%B1%BB%E6%B3%A8%E5%85%A5RedisTemplate"><span class="toc-text">
+          然后通过配置类注入RedisTemplate</span></a><ol class="toc-child"><li class="toc-item toc-level-6"><a class="toc-link" href="#%E8%A7%A3%E9%87%8A%E5%87%A0%E4%B8%AA%E5%9C%B0%E6%96%B9%EF%BC%9A"><span class="toc-text">
+          解释几个地方：</span></a></li></ol></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9C%80%E5%90%8E%E6%98%AF%E6%B5%8B%E8%AF%95%E7%8E%AF%E8%8A%82"><span class="toc-text">
+          最后是测试环节</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/assets/head-photo.png" alt="avatar"></div><p class="sidebar-ov-author__text">begin with hello world,end in the world I love</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/kongliver" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="https://twitter.com/kong75441977" target="_blank" rel="noopener" data-popover="Twitter" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-twitter"></i></span></a><a class="sidebar-ov-social-item" href="https://blog.csdn.net/weixin_42233500" target="_blank" rel="noopener" data-popover="CSDN" data-popover-pos="up"><span class="sidebar-ov-social-item__icon">CSDN</span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/kongliver" rel="noopener" target="_blank">kongliver</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.0.2</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><div class="search-mask"></div><div class="search-popup"><span class="search-close"></span><div class="search-input"><input placeholder="搜索文章（支持多关键词，请用空格分隔）"></div><div class="search-results"></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script>function initSearch() {
+  var isXML = true;
+  var search_path = 'search.json';
+
+  if (!search_path) {
+    search_path = 'search.xml';
+  } else if (/json$/i.test(search_path)) {
+    isXML = false;
+  }
+
+  var path = '/' + search_path;
+  $.ajax({
+    url: path,
+    dataType: isXML ? 'xml' : 'json',
+    async: true,
+    success: function (res) {
+      var datas = isXML ? $('entry', res).map(function () {
+        // 将 XML 转为 JSON
+        return {
+          title: $('title', this).text(),
+          content: $('content', this).text(),
+          url: $('url', this).text()
+        };
+      }).get() : res;
+      var $input = $('.search-input input');
+      var $result = $('.search-results');
+      // 搜索对象（标题、内容）的权重，影响显示顺序
+      var WEIGHT = { title: 100, content: 1 };
+      var searchPost = function () {
+        var searchText = $input.val().toLowerCase().trim();
+        // 根据空白字符分隔关键字
+        var keywords = searchText.split(/[\s]+/);
+        // 搜索结果
+        var matchPosts = [];
+
+        // 有多个关键字时，将原文字整个保存下来
+        if (keywords.length > 1) {
+          keywords.push(searchText);
+        }
+        // 防止未输入字符时搜索
+        if (searchText.length > 0) {
+          datas.forEach(function (data) {
+            var isMatch  = false;
+            // 没有标题的文章使用预设的 i18n 变量代替
+            var title = (data.title && data.title.trim()) || '[ 文章无标题 ]';
+            var titleLower = title && title.toLowerCase();
+            // 删除 HTML 标签 和 所有空白字符
+            var content = data.content && data.content.replace(/<[^>]+>/g, '');
+            var contentLower = content && content.toLowerCase();
+            // 删除重复的 /
+            var postURL = data.url && decodeURI(data.url).replace(/\/{2,}/g, '/');
+            // 标题中匹配到的关键词
+            var titleHitSlice = [];
+            // 内容中匹配到的关键词
+            var contentHitSlice = [];
+
+            keywords.forEach(function (keyword) {
+              /**
+              * 获取匹配的关键词的索引
+              * @param {String} keyword 要匹配的关键字
+              * @param {String} text 原文字
+              * @param {Boolean} caseSensitive 是否区分大小写
+              * @param {Number} weight 匹配对象的权重。权重大的优先显示
+              * @return {Array}
+              */
+              function getIndexByword (word, text, caseSensitive, weight) {
+                if (!word || !text) {
+                  return [];
+                };
+
+                var startIndex = 0; // 每次匹配的开始索引
+                var index = -1;     // 匹配到的索引值
+                var result = [];    // 匹配结果
+
+                if (!caseSensitive) {
+                  word = word.toLowerCase();
+                  text = text.toLowerCase();
+                }
+
+                while((index = text.indexOf(word, startIndex)) !== -1) {
+                  var hasMatch = false;
+                  // 索引位置相同的关键词，保留长度较长的
+                  titleHitSlice.forEach(function (hit) {
+                    if (hit.index === index && hit.word.length < word.length) {
+                      hit.word = word;
+                      hasMatch = true;
+                    }
+                  });
+                  startIndex = index + word.length;
+                  !hasMatch && result.push({ index: index, word: word, weight: weight });
+                }
+                return result;
+              }
+              titleHitSlice = titleHitSlice.concat(getIndexByword(keyword, titleLower, false, WEIGHT.title));
+              contentHitSlice = contentHitSlice.concat(getIndexByword(keyword, contentLower, false, WEIGHT.content));
+            });
+
+            var hitTitle = titleHitSlice.length;
+            var hitContent = contentHitSlice.length;
+
+            if (hitTitle > 0 || hitContent > 0) {
+              isMatch = true;
+            }
+            if (isMatch) {
+              ;[titleHitSlice, contentHitSlice].forEach(function (hit) {
+                // 按照匹配文字的索引的递增顺序排序
+                hit.sort(function (left, right) {
+                  return left.index - right.index;
+                });
+              });
+              /**
+              * 给文本中匹配到的关键词添加标记，从而进行高亮显示
+              * @param {String} text 原文本
+              * @param {Array} hitSlice 匹配项的索引信息
+              * @param {Number} start 开始索引
+              * @param {Number} end 结束索引
+              * @return {String}
+              */
+              function highlightKeyword (text, hitSlice, start, end) {
+                if (!text || !hitSlice || !hitSlice.length) {
+                  return;
+                }
+
+                var result = '';
+                var startIndex = start;
+                var endIndex = end;
+                hitSlice.forEach(function (hit) {
+                  if (hit.index < startIndex) {
+                    return;
+                  }
+
+                  var hitWordEnd = hit.index + hit.word.length;
+                  result += text.slice(startIndex, hit.index);
+                  result += '<b>' + text.slice(hit.index, hitWordEnd) + '</b>';
+                  startIndex = hitWordEnd;
+                });
+                result += text.slice(startIndex, endIndex);
+                return result;
+              }
+
+              var postData = {};
+              // 文章总的搜索权重
+              var postWeight = titleHitSlice.length * WEIGHT.title + contentHitSlice.length * WEIGHT.content;
+              // 标记匹配关键词后的标题
+              var postTitle = highlightKeyword(title, titleHitSlice, 0, title.length) || title;
+              // 标记匹配关键词后的内容
+              var postContent;
+              // 显示内容的长度
+              var SHOW_WORD_LENGTH = 200;
+              // 命中关键词前的字符显示长度
+              var SHOW_WORD_FRONT_LENGTH = 20;
+              var SHOW_WORD_END_LENGTH = SHOW_WORD_LENGTH - SHOW_WORD_FRONT_LENGTH;
+
+              // 截取匹配的第一个字符，前后共 200 个字符来显示
+              if (contentHitSlice.length > 0) {
+                var firstIndex = contentHitSlice[0].index;
+                var start = firstIndex > SHOW_WORD_FRONT_LENGTH ? firstIndex - SHOW_WORD_FRONT_LENGTH : 0;
+                var end = firstIndex + SHOW_WORD_END_LENGTH;
+                postContent = highlightKeyword(content, contentHitSlice, start, end);
+              } else { // 未匹配到内容，直接截取前 200 个字符来显示
+                postContent = content.slice(0, SHOW_WORD_LENGTH);
+              }
+              postData.title = postTitle;
+              postData.content = postContent;
+              postData.url = postURL;
+              postData.weight = postWeight;
+              matchPosts.push(postData);
+            }
+          });
+        }
+
+        var resultInnerHtml = '';
+        if (matchPosts.length) {
+          // 按权重递增的顺序排序，使权重大的优先显示
+          matchPosts.sort(function (left, right) {
+            return right.weight - left.weight;
+          });
+          resultInnerHtml += '<ul>';
+          matchPosts.forEach(function (post) {
+            resultInnerHtml += '<li><a class="search-results-title" href="' + post.url + '">';
+            resultInnerHtml += post.title;
+            resultInnerHtml += '</a><div class="search-results-content">';
+            resultInnerHtml += post.content;
+            resultInnerHtml += '</div></li>';
+          });
+          resultInnerHtml += '</ul>';
+        } else {
+          resultInnerHtml += '<div class="search-results-none"><i class="far fa-meh"></i></div>';
+        }
+        $result.html(resultInnerHtml);
+      };
+      $input.on('input', searchPost);
+      $input.on('keyup', function (e) {
+        if (e.keyCode === Stun.utils.codeToKeyCode('Enter')) {
+          searchPost();
+        }
+      });
+    }
+  });
+}
+
+function closeSearch () {
+  $('body').css({ overflow: 'auto' });
+  $('.search-popup').css({ display: 'none' });
+  $('.search-mask').css({ display: 'none' });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+  Stun.utils.pjaxReloadLocalSearch = function () {
+    $('.header-nav-search').on('click', function (e) {
+      e.stopPropagation();
+      $('body').css('overflow', 'hidden');
+      $('.search-popup')
+        .velocity('stop')
+        .velocity('transition.expandIn', {
+          duration: 300,
+          complete: function () {
+            $('.search-popup input').focus();
+          }
+        });
+      $('.search-mask')
+        .velocity('stop')
+        .velocity('transition.fadeIn', {
+          duration: 300
+        });
+
+      initSearch();
+    });
+    $('.search-mask, .search-close').on('click', function () {
+      closeSearch();
+    });
+    $(document).on('keydown', function (e) {
+      // Escape <=> 27
+      if (e.keyCode === Stun.utils.codeToKeyCode('Escape')) {
+        closeSearch();
+      }
+    });
+  };
+
+  Stun.utils.pjaxReloadLocalSearch();
+}, false);</script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://www.lyzhxlove.top/2020/09/15/SpringBoot-2-x-%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE%E4%B8%AD%E4%BD%BF%E7%94%A8RedisTemplate%E6%93%8D%E4%BD%9C%E5%A4%9A%E4%B8%AARedis%E5%BA%93/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="https://cdn.jsdelivr.net/npm/leancloud-storage@latest/dist/av-min.js"></script><script src="https://cdn.jsdelivr.net/npm/valine@latest/dist/Valine.min.js"></script><script data-pjax="">function loadValine () {
+  var GUEST_INFO = ['nick', 'mail', 'link'];
+  var guest_info = 'nick,mail,link';
+
+  guest_info = guest_info.split(',').filter(function(item) {
+    return GUEST_INFO.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#valine-container',
+    appId: '1cY6NvTqmmVrGxl8RW3q2GTc-gzGzoHsz',
+    appKey: '0rl3zyJ99W8OFw3Qx5xPkbbg',
+    notify: true,
+    verify: true,
+    placeholder: 'Please make your own comments!',
+    avatar: 'mp',
+    meta: guest_info,
+    pageSize: '10' || 10,
+    visitor: false,
+    recordIP: false,
+    lang: 'zh-cn' || 'zh-cn',
+    path: window.location.pathname
+  });
+}
+
+if (true) {
+  loadValine();
+} else {
+  window.addEventListener('DOMContentLoaded', loadValine, false);
+}</script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script type="application/json" src="/search.json"></script><script>if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js?t=1600163066362')
+    .then(function () {console.log('ServiceWorker Register Successfully.')})
+    .catch(function (e) {console.error(e)});
+}
+</script></body></html>
