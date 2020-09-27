@@ -1,0 +1,681 @@
+<!DOCTYPE html><html lang="zh-CN"><head><link rel=manifest href=/manifest.json><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="theme-color" content="#ffffff"><link rel="manifest" href="/manifest.json?v=2.1.1"><link rel="icon" href="/assets/favicon/favicon-16x16.ico?v=2.1.1" type="image/png" sizes="16x16"><link rel="icon" href="/assets/favicon/favicon-32x32.ico?v=2.1.1" type="image/png" sizes="32x32"><meta name="google-site-verification" content="MUF0Rt6V-U-Yt0gCXwwA3wxu7VfPs37Pyso2BH0anrE"><meta name="baidu-site-verification" content="code-evYy45A5k6"><meta name="description" content="该系列主要是阅读了《redis设计与实现》后的一些随笔，供自己回味，也供大家参考。本文主要介绍Redis基础数据结构之简单动态字符串，这是Redis最基本的数据结构，许多其他的数据结构都会基于其进行构建，同时这也是我觉得设计得比较有趣的数据结构。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis基础数据结构之简单动态字符串">
+<meta property="og:url" content="https://www.lyzhxlove.top/2020/09/27/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/index.html">
+<meta property="og:site_name" content="极客空的小博客">
+<meta property="og:description" content="该系列主要是阅读了《redis设计与实现》后的一些随笔，供自己回味，也供大家参考。本文主要介绍Redis基础数据结构之简单动态字符串，这是Redis最基本的数据结构，许多其他的数据结构都会基于其进行构建，同时这也是我觉得设计得比较有趣的数据结构。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/sds%E5%9B%BE%E7%A4%BA.png">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/sds%E5%9B%BE%E7%A4%BA-%E5%B8%A6free.png">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E7%9B%B8%E9%82%BBC%E5%AD%97%E7%AC%A6%E4%B8%B2.png">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E7%9B%B8%E9%82%BBC%E5%AD%97%E7%AC%A6%E4%B8%B2-%E7%BC%93%E5%86%B2%E5%8C%BA%E6%BA%A2%E5%87%BA.png">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%83%B0%E6%80%A7%E7%A9%BA%E9%97%B4%E9%87%8A%E6%94%BE.png">
+<meta property="og:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%83%B0%E6%80%A7%E7%A9%BA%E9%97%B4%E9%87%8A%E6%94%BE-%E4%BF%AE%E6%94%B9%E5%90%8E.png">
+<meta property="article:published_time" content="2020-09-27T09:17:05.000Z">
+<meta property="article:modified_time" content="2020-09-27T09:39:51.286Z">
+<meta property="article:author" content="kongliver">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.lyzhxlove.top/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/sds%E5%9B%BE%E7%A4%BA.png"><title>Redis基础数据结构之简单动态字符串 | 极客空的小博客</title><link ref="canonical" href="https://www.lyzhxlove.top/2020/09/27/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="dns-prefetch" href="https://hm.baidu.com"><script src="https://www.googletagmanager.com/gtag/js?id=UA-177804942-1" async="" data-pjax=""></script><script data-pjax="">if (window.location.hostname !== 'localhost') {
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'UA-177804942-1');
+}</script><script>var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement('script');
+  hm.src = 'https://hm.baidu.com/hm.js?fb7712e083d1c4ddec8cd43af8962ba7';
+  hm.async = true;
+
+  if (true) {
+    hm.setAttribute('data-pjax', '');
+  }
+  var s = document.getElementsByTagName('script')[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();</script><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":6},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"default","highlight":"ocean","wordWrap":false},
+  reward: false,
+  fancybox: false,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.0.2"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-feather-alt"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-fingerprint"></i></span><span class="header-nav-menu-item__text">个人</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/about/"><span class="header-nav-submenu-item__icon"><i class="far fa-id-card"></i></span><span class="header-nav-submenu-item__text">关于</span></a></div></div></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-angle-double-down"></i></span><span class="header-nav-menu-item__text">其他...</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/leavenote/"><span class="header-nav-submenu-item__icon"><i class="fas fa-book-open"></i></span><span class="header-nav-submenu-item__text">留言板</span></a></div></div></div></div><div class="header-nav-search"><span class="header-nav-search__icon"><i class="fas fa-search"></i></span><span class="header-nav-search__text">搜索</span></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner" style="background: url(/assets/blogpicture/tent.jpg) no-repeat center/cover;"><div class="header-banner-info"><div class="header-banner-info__title">极客空的小博客</div><div class="header-banner-info__subtitle">begin with hello world,end in the world I love</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Redis基础数据结构之简单动态字符串</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-27</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-27</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">3.3k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">18分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body"><p>该系列主要是阅读了《redis设计与实现》后的一些随笔，供自己回味，也供大家参考。本文主要介绍Redis基础数据结构之简单动态字符串，这是Redis最基本的数据结构，许多其他的数据结构都会基于其进行构建，同时这也是我觉得设计得比较有趣的数据结构。</p>
+<a id="more"></a>
+
+
+        <h2 id="概述"   >
+          <a href="#概述" class="heading-link"><i class="fas fa-link"></i></a>概述</h2>
+      <ul>
+<li><p>Redis底层是使用C语言实现，但是在使用字符串时没有直接使用C语言传统的字符串，而是使用的一种自己构建的名为简单动态字符串（simple dynamic string，简称SDS）的抽象类型，并把SDS作为Redis字符串的默认实现。</p>
+</li>
+<li><p>C语言传统字符串被作为字符串字面量用在一些无须对字符串做修改的地方，比如打印日志：</p>
+<figure class="highlight c"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redisLog(REDIS_WARNING, <span class="string">&quot;Redis is now ready to exit, bye bye...&quot;</span>)</span><br></pre></td></tr></table></div></figure>
+</li>
+<li><p>SDS在Redis中的主要作用是用来保存数据库中的字符串，同时它还被用作缓冲区（buffer）</p>
+<ul>
+<li>AOF模块中的AOF缓冲区</li>
+<li>客户端状态中的输入缓冲区</li>
+</ul>
+</li>
+</ul>
+
+        <h2 id="SDS的定义"   >
+          <a href="#SDS的定义" class="heading-link"><i class="fas fa-link"></i></a>SDS的定义</h2>
+      
+        <h4 id="1-源代码展示"   >
+          <a href="#1-源代码展示" class="heading-link"><i class="fas fa-link"></i></a>1. 源代码展示</h4>
+      <figure class="highlight c"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// sds定义了三个属性</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">    <span class="comment">// 记录buf数组中已经使用是字节的数量，其实就是目前sds所保存的字符串的长度</span></span><br><span class="line">    <span class="keyword">int</span> len;</span><br><span class="line">    <span class="comment">// 记录buf数组中未使用字节的数量</span></span><br><span class="line">    <span class="keyword">int</span> <span class="built_in">free</span>;</span><br><span class="line">    <span class="comment">// 字节数组，用来保存字符串</span></span><br><span class="line">    <span class="keyword">char</span> buf[];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+
+
+        <h4 id="2-图示讲解"   >
+          <a href="#2-图示讲解" class="heading-link"><i class="fas fa-link"></i></a>2. 图示讲解</h4>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/sds%E5%9B%BE%E7%A4%BA.png"  alt="image-20200925151137283">
+      </p>
+<blockquote>
+<p>图中展示了一个简单的sds结构</p>
+</blockquote>
+<ul>
+<li>free 为0表示sds剩余容量是0字节，即没有分配未使用的空间</li>
+<li>len 为5表示sds保存了5字节长度的字符串。图示中实际占用6个字节的长度，是因为C语言的字符串以<code>&quot;\0&quot;</code>（即ASCII码为0的空字符）标识结尾，而sds结构也也沿用了C语言这个设计，但是<code>&quot;\0&quot;</code>是不计算在sds长度之内的，并且将<code>&quot;\0&quot;</code>添加到字符串结尾的操作由sds函数自动完成，属于无感知操作</li>
+<li>buf 是一个char类型的字符串数组，图示为数组用5个字节保存了字符串<code>&quot;Redis&quot;</code>这5个字符，并且用一个字节保存了<code>&quot;\0&quot;</code>这个字符</li>
+</ul>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/sds%E5%9B%BE%E7%A4%BA-%E5%B8%A6free.png"  alt="image-20200925154634285">
+      </p>
+<ul>
+<li>图示的sds结构free 为3，即表示还有3个字节的空余空间可以使用</li>
+<li>这里空余空间用空格代替</li>
+</ul>
+
+        <h2 id="SDS与C字符串的区别"   >
+          <a href="#SDS与C字符串的区别" class="heading-link"><i class="fas fa-link"></i></a>SDS与C字符串的区别</h2>
+      
+        <h4 id="1-常数复杂度获取字符串长度"   >
+          <a href="#1-常数复杂度获取字符串长度" class="heading-link"><i class="fas fa-link"></i></a>1. 常数复杂度获取字符串长度</h4>
+      <ul>
+<li>C字符串没有记录自身的长度信息，想要知道字符串的长度，只能通过遍历整个字符串计数，直到遇到<code>&quot;\0&quot;</code>停止计数。很明显这样的操作复杂度为O(N)</li>
+<li>sds通过len 属性记录sds字符串的长度，想要获取sds字符串的长度信息直接读取len 属性即可，这样复杂度就降到了O(1)，即使多次对长字符串执行<code>STRLEN</code>命令也不会产生性能瓶颈。设置和更新sds长度都是由sds的API在执行时自动完成的，使用sds时无需进行任何手动修改长度的工作。</li>
+</ul>
+
+        <h4 id="2-杜绝缓冲区溢出"   >
+          <a href="#2-杜绝缓冲区溢出" class="heading-link"><i class="fas fa-link"></i></a>2. 杜绝缓冲区溢出</h4>
+      
+        <h5 id="2-1-什么叫缓冲区溢出"   >
+          <a href="#2-1-什么叫缓冲区溢出" class="heading-link"><i class="fas fa-link"></i></a>2.1 什么叫缓冲区溢出</h5>
+      <blockquote>
+<p>该问题同样是由C字符串不记录自身长度引入的，下面举个例子说明</p>
+</blockquote>
+<ul>
+<li><p>C字符串里面有个字符串拼接函数<code>strcat</code>，类似于Java中<code>&quot;+&quot;</code>在字符串中的作用，将给定字符串拼接到目标字符串的末尾。因为C字符串不记录自身长度，如果目标字符串分配的长度不足以存放拼接后的字符串，并且拼接之前也并未对目标字符串进行长度重新分配，一旦执行<code>strcat</code>函数后，则会发生缓冲区溢出</p>
+</li>
+<li><p>文字解释起来可能有点绕，下面使用图示说明</p>
+<ul>
+<li>假定有两个在内存中紧邻的C字符串 s1和 s2，s1 = “redis”，s2 = “mongodb”，如下图所示：<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E7%9B%B8%E9%82%BBC%E5%AD%97%E7%AC%A6%E4%B8%B2.png"  alt="image-20200925170119836">
+      </li>
+<li>调用函数：</li>
+</ul>
+<figure class="highlight c"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">strcat</span>(s1, <span class="string">&quot;cluster&quot;</span>)</span><br></pre></td></tr></table></div></figure>
+
+<p>改变 s1的内容为：”redis cluster”，但是调用函数前如果未对 s1分配足够的内存，s1的内容就会溢出到 s2的内存空间中，导致 s2的内容被修改</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E7%9B%B8%E9%82%BBC%E5%AD%97%E7%AC%A6%E4%B8%B2-%E7%BC%93%E5%86%B2%E5%8C%BA%E6%BA%A2%E5%87%BA.png"  alt="image-20200927111446698">
+      </p>
+</li>
+</ul>
+
+        <h5 id="2-2-SDS的解决策略"   >
+          <a href="#2-2-SDS的解决策略" class="heading-link"><i class="fas fa-link"></i></a>2.2 SDS的解决策略</h5>
+      <ul>
+<li>其实很简单，既然直接拼接有可能会产生缓冲区溢出，那就在拼接之前检查一下嘛。当SDS需要修改时，SDS的API会对SDS的空间进行确认，看是否满足修改所需的空间要求，如果不满足，SDS的API会自动扩展SDS的空间来满足修改，然后再执行修改的操作。所以SDS既不需要手动修改SDS的空间大小，也不会产生缓冲区溢出的问题</li>
+<li>举个示例：SDS的API中有一个<code>sdscat</code>函数，将一个C字符串拼接到目标SDS所保存的字符串后面，在拼接之前，<code>sdscat</code>会检查SDS的剩余空间是否足够，如果不够就先扩展SDS的空间，然后进行拼接。至于扩展策略在下面的内容中介绍</li>
+</ul>
+
+        <h5 id="2-3-自己的理解"   >
+          <a href="#2-3-自己的理解" class="heading-link"><i class="fas fa-link"></i></a>2.3 自己的理解</h5>
+      <p>看到这第一感觉 SDS有点类似于Java中集合的味道。另外Java的字符串中没有缓冲区内存溢出的概念，Java字符串是基于字符数组实现的，JVM对数组会进行边界检查，感兴趣的具体可以网上查阅</p>
+
+        <h4 id="3-减少修改字符串时带来的内存重分配次数"   >
+          <a href="#3-减少修改字符串时带来的内存重分配次数" class="heading-link"><i class="fas fa-link"></i></a>3. 减少修改字符串时带来的内存重分配次数</h4>
+      <p>C字符串不记录自身的长度，一个 N 个字符长度的C字符串，底层实现是 N+1 个字符长的数组（多的一个字符空间用来保存空字符<code>&quot;\0&quot;</code>），而数组一旦创建出来长度就是固定的，所以每次增长或者缩短一个C字符串，则需要对保存这个C字符串的数组进行一次重新分配内存：</p>
+<ul>
+<li>如果是增长字符串的操作，例如拼接（append）操作，那么在执行这个操作之前，程序要先通过内存重分配来扩展底层数组的大小——如果没有这一步就会产生缓冲区溢出</li>
+<li>如果是缩短字符串的操作，例如截断（trim）操作，那么在执行这个操作之后，程序要先通过内存重分配来释放字符串不再使用的那部分空间——如果没有这一步就会产生内存泄漏</li>
+</ul>
+<p>内存重分配涉及复杂的算法，并且有可能需要执行系统级别的调用，通常来说是一个比较耗时的操作，这对于追求性能的 Redis 数据库来说是致命的，所以 SDS 引入一个未使用空间的概念，即 free 属性。通过未使用空间，SDS实现了空间预分配和惰性空间释放两种优化策略：</p>
+
+        <h5 id="3-1-空间预分配"   >
+          <a href="#3-1-空间预分配" class="heading-link"><i class="fas fa-link"></i></a>3.1 空间预分配</h5>
+      <p>这是用来优化SDS的字符串增长操作。在SDS的API对一个SDS进行修改，并且需要对SDS进行空间扩展时，程序不仅会为SDS分配修改所必须要的空间，还会为SDS分配额外的未使用的空间</p>
+<p>以下为额外分配的未使用空间的公式：</p>
+<ul>
+<li>如果对SDS进行修改后，SDS的长度（也就是 len 属性）小于1MB，则程序会分配和 len属性相同长度的剩余空间，也就是说 len属性和 free属性的值相同。例如进行修改之后 len属性为16，则程序会将free属性也置为16，此时 buf数组的实际长度为 16 + 16 + 1 = 33（1为结尾的空字符）</li>
+<li>如果对SDS进行修改后，SDS的长度大于等于1MB，则程序会分配 1MB 的剩余空间。例如在进行修改后 len 变为 5MB，则程序会将 free属性置为 1MB，次数buf数组的实际长度为 5MB + 1MB + 1byte</li>
+</ul>
+<ol>
+<li>正是因为空间预分配策略，在扩展SDS之前，SDS的API会先检查剩余空间是否足够，如果足够的话，API就会直接使用剩余空间，无需进行内存重分配</li>
+<li>通过这种策略，SDS将连续增长N次字符串所需的内存重分配次数从必定N次减少到最多N次</li>
+</ol>
+
+        <h5 id="3-2-惰性空间释放"   >
+          <a href="#3-2-惰性空间释放" class="heading-link"><i class="fas fa-link"></i></a>3.2 惰性空间释放</h5>
+      <p>这是用来优化SDS的字符串缩短操作。当SDS的API需要缩短SDS所保存的字符串时，程序不会立即使用内存重分配来回收缩短后多出的内存字节，而是用 free 字段将这些字节的数量记录起来，等待将来使用</p>
+<ul>
+<li>图示举例</li>
+</ul>
+<ol>
+<li>有一个SDS结构s如下图：</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%83%B0%E6%80%A7%E7%A9%BA%E9%97%B4%E9%87%8A%E6%94%BE.png"  alt="image-20200927160756481">
+      </p>
+<ol start="2">
+<li>执行函数</li>
+</ol>
+<figure class="highlight c"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 函数的作用：移除sds字符串中所有的&quot;x&quot;</span></span><br><span class="line">sdstrim(s, <span class="string">&quot;x&quot;</span>)</span><br></pre></td></tr></table></div></figure>
+
+<ol start="3">
+<li>修改后的SDS结构如下图：</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="/assets/blogsupport/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/%E6%83%B0%E6%80%A7%E7%A9%BA%E9%97%B4%E9%87%8A%E6%94%BE-%E4%BF%AE%E6%94%B9%E5%90%8E.png"  alt="image-20200927160942062">
+      </p>
+<p>执行<code>sdstrim</code>函数后多出的4个空间并没有立即释放，而是放入 free属性中，作为未使用空间保留在SDS结构里。如果将来要进行增长操作，并且增长的字符串小于 free 属性的4字节，就可以不用就行扩展操作直接增长</p>
+<ul>
+<li>通过惰性空间释放的策略，SDS避免了缩短字符串时所需要的内存重分配操作，并同时为将来可能发生的增长操作提供了优化，正是一石二鸟之计，妙哉</li>
+<li>当然SDS也提供了真正释放SDS未使用空间的API，让我们在有需要的时候真正的释放，不用担心惰性空间释放策略造成的内存浪费</li>
+</ul>
+
+        <h4 id="4-二进制安全"   >
+          <a href="#4-二进制安全" class="heading-link"><i class="fas fa-link"></i></a>4. 二进制安全</h4>
+      <ul>
+<li>C字符串中的字符必须要符合某种编码，并且除了末尾之外不能包含空字符，否则会被程序误以为是字符串的结尾。这种限制使得C字符串只能保存文本数据，而不能保存像图片、音频、视频、压缩文件等二进制数据</li>
+<li>数据库需要保存各种类型的数据，为了确保Redis 可以适用不通的场景，SDS的API都是二进制安全的，所有SDS的API都会以处理二进制的方式来处理SDS保存在buf数组中的数据，程序不会对里面的数据做任何限制、过滤、假设，数据的写入时是什么样，读取时就是什么样</li>
+<li>例如 SDS 就算是保存包含多个空字符的字符串也没有问题，因为SDS是依赖 len 属性的值而不是空字符来判断字符串的结尾</li>
+</ul>
+
+        <h4 id="5-兼容部分C字符串函数"   >
+          <a href="#5-兼容部分C字符串函数" class="heading-link"><i class="fas fa-link"></i></a>5. 兼容部分C字符串函数</h4>
+      <ul>
+<li>由于 SDS 遵循C字符串以空字符结尾的惯例，SDS的API都会在SDS保存的数据末尾设置空字符，并且buf数组分配空间时也会多分配一个字节来容纳这个空字符，这都是为了那些保存文本数据的SDS可以重用一部分C字符串的函数</li>
+<li>例如：有一个保存文本数据的SDS结构s，就可以用<code>strcasecmp</code>函数来对比SDS保存的字符串和另一个C字符串</li>
+</ul>
+<figure class="highlight c"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">strcasecmp(s -&gt; buf, <span class="string">&quot;test&quot;</span>);</span><br></pre></td></tr></table></div></figure>
+
+<ul>
+<li>重用C字符串的函数库，避免了重复造轮子，避免了不必要的代码重复</li>
+</ul>
+
+        <h2 id="SDS主要API展示"   >
+          <a href="#SDS主要API展示" class="heading-link"><i class="fas fa-link"></i></a>SDS主要API展示</h2>
+      <div class="table-container"><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>作用</th>
+<th>时间复杂度</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>sdsnew</td>
+<td>创建一个包含给定字符串的sds</td>
+<td>O(N)，N为给定C字符串的长度</td>
+</tr>
+<tr>
+<td>sdsempty</td>
+<td>创建一个不包含任何内容的空sds</td>
+<td>O(1)</td>
+</tr>
+<tr>
+<td>sdsfree</td>
+<td>释放给定的sds</td>
+<td>O(N)，N为被释放sds的长度</td>
+</tr>
+<tr>
+<td>sdslen</td>
+<td>返回sds的已使用空间字节数</td>
+<td>直接读取len属性，O(1)</td>
+</tr>
+<tr>
+<td>sdsavail</td>
+<td>返回sds的未使用空间字节数</td>
+<td>直接读取free属性，O(1)</td>
+</tr>
+<tr>
+<td>sdsdup</td>
+<td>创建一个给定sds的副本（copy）</td>
+<td>O(N)，N为给定sds的长度</td>
+</tr>
+<tr>
+<td>sdsclear</td>
+<td>清空sds保存的字符串内容</td>
+<td>惰性空间释放策略，复杂度为O(1)</td>
+</tr>
+<tr>
+<td>sdscat</td>
+<td>将给定C字符串拼接到sds字符串的末尾</td>
+<td>O(N)，N为被拼接C字符串的长度</td>
+</tr>
+<tr>
+<td>sdscatsds</td>
+<td>将给定sds字符串拼接到另一个sds字符串的末尾</td>
+<td>O(N)，N为被拼接sds字符串的长度</td>
+</tr>
+<tr>
+<td>sdscpy</td>
+<td>将给定的C字符串复制到sds里面，覆盖sds原有的字符串</td>
+<td>O(N)，N为被复制C字符串的长度</td>
+</tr>
+<tr>
+<td>sdsgrowzero</td>
+<td>用空字符将sds扩展到给定长度</td>
+<td>O(N)，N为扩展新增的字节数</td>
+</tr>
+<tr>
+<td>sdsrange</td>
+<td>保留sds给定区间内的数据，不再区间内的数据被覆盖或清除</td>
+<td>O(N)，N为保留数据的字节数</td>
+</tr>
+<tr>
+<td>sdstrim</td>
+<td>接受一个sds和一个C字符串作为参数，从sds中移除所有在C字符串中出现过的字符</td>
+<td>O(N*N)，N为给定C字符串的长度</td>
+</tr>
+<tr>
+<td>sdscmp</td>
+<td>对比两个sds字符串是否相同</td>
+<td>O(N)，N为两个sds中较短的那个sds的长度</td>
+</tr>
+</tbody></table></div>
+<p><strong>参考资料：《Redis设计于实现（第二版）》—黄健宏</strong></p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://www.lyzhxlove.top">kongliver</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://www.lyzhxlove.top/2020/09/27/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/">https://www.lyzhxlove.top/2020/09/27/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://www.lyzhxlove.top/tags/Redis/">Redis</a></span></div><nav class="post-paginator paginator"><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/15/Java%E4%B9%8BNIO%E5%88%9D%E6%8E%A2/"><span class="paginator-prev__text">Java之NIO初探</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div><div class="comments" id="comments"><div id="valine-container"></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-text">
+          概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SDS%E7%9A%84%E5%AE%9A%E4%B9%89"><span class="toc-text">
+          SDS的定义</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E6%BA%90%E4%BB%A3%E7%A0%81%E5%B1%95%E7%A4%BA"><span class="toc-text">
+          1. 源代码展示</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E5%9B%BE%E7%A4%BA%E8%AE%B2%E8%A7%A3"><span class="toc-text">
+          2. 图示讲解</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SDS%E4%B8%8EC%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9A%84%E5%8C%BA%E5%88%AB"><span class="toc-text">
+          SDS与C字符串的区别</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#1-%E5%B8%B8%E6%95%B0%E5%A4%8D%E6%9D%82%E5%BA%A6%E8%8E%B7%E5%8F%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E9%95%BF%E5%BA%A6"><span class="toc-text">
+          1. 常数复杂度获取字符串长度</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#2-%E6%9D%9C%E7%BB%9D%E7%BC%93%E5%86%B2%E5%8C%BA%E6%BA%A2%E5%87%BA"><span class="toc-text">
+          2. 杜绝缓冲区溢出</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#2-1-%E4%BB%80%E4%B9%88%E5%8F%AB%E7%BC%93%E5%86%B2%E5%8C%BA%E6%BA%A2%E5%87%BA"><span class="toc-text">
+          2.1 什么叫缓冲区溢出</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-2-SDS%E7%9A%84%E8%A7%A3%E5%86%B3%E7%AD%96%E7%95%A5"><span class="toc-text">
+          2.2 SDS的解决策略</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#2-3-%E8%87%AA%E5%B7%B1%E7%9A%84%E7%90%86%E8%A7%A3"><span class="toc-text">
+          2.3 自己的理解</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#3-%E5%87%8F%E5%B0%91%E4%BF%AE%E6%94%B9%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%97%B6%E5%B8%A6%E6%9D%A5%E7%9A%84%E5%86%85%E5%AD%98%E9%87%8D%E5%88%86%E9%85%8D%E6%AC%A1%E6%95%B0"><span class="toc-text">
+          3. 减少修改字符串时带来的内存重分配次数</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#3-1-%E7%A9%BA%E9%97%B4%E9%A2%84%E5%88%86%E9%85%8D"><span class="toc-text">
+          3.1 空间预分配</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#3-2-%E6%83%B0%E6%80%A7%E7%A9%BA%E9%97%B4%E9%87%8A%E6%94%BE"><span class="toc-text">
+          3.2 惰性空间释放</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#4-%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%AE%89%E5%85%A8"><span class="toc-text">
+          4. 二进制安全</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#5-%E5%85%BC%E5%AE%B9%E9%83%A8%E5%88%86C%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%87%BD%E6%95%B0"><span class="toc-text">
+          5. 兼容部分C字符串函数</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SDS%E4%B8%BB%E8%A6%81API%E5%B1%95%E7%A4%BA"><span class="toc-text">
+          SDS主要API展示</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="/assets/head-photo.png" alt="avatar"></div><p class="sidebar-ov-author__text">begin with hello world,end in the world I love</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/kongliver" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="https://twitter.com/kong75441977" target="_blank" rel="noopener" data-popover="Twitter" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-twitter"></i></span></a><a class="sidebar-ov-social-item" href="https://blog.csdn.net/weixin_42233500" target="_blank" rel="noopener" data-popover="CSDN" data-popover-pos="up"><span class="sidebar-ov-social-item__icon">CSDN</span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/kongliver" rel="noopener" target="_blank">kongliver</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.0.2</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><div class="search-mask"></div><div class="search-popup"><span class="search-close"></span><div class="search-input"><input placeholder="搜索文章（支持多关键词，请用空格分隔）"></div><div class="search-results"></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script>function initSearch() {
+  var isXML = true;
+  var search_path = 'search.json';
+
+  if (!search_path) {
+    search_path = 'search.xml';
+  } else if (/json$/i.test(search_path)) {
+    isXML = false;
+  }
+
+  var path = '/' + search_path;
+  $.ajax({
+    url: path,
+    dataType: isXML ? 'xml' : 'json',
+    async: true,
+    success: function (res) {
+      var datas = isXML ? $('entry', res).map(function () {
+        // 将 XML 转为 JSON
+        return {
+          title: $('title', this).text(),
+          content: $('content', this).text(),
+          url: $('url', this).text()
+        };
+      }).get() : res;
+      var $input = $('.search-input input');
+      var $result = $('.search-results');
+      // 搜索对象（标题、内容）的权重，影响显示顺序
+      var WEIGHT = { title: 100, content: 1 };
+      var searchPost = function () {
+        var searchText = $input.val().toLowerCase().trim();
+        // 根据空白字符分隔关键字
+        var keywords = searchText.split(/[\s]+/);
+        // 搜索结果
+        var matchPosts = [];
+
+        // 有多个关键字时，将原文字整个保存下来
+        if (keywords.length > 1) {
+          keywords.push(searchText);
+        }
+        // 防止未输入字符时搜索
+        if (searchText.length > 0) {
+          datas.forEach(function (data) {
+            var isMatch  = false;
+            // 没有标题的文章使用预设的 i18n 变量代替
+            var title = (data.title && data.title.trim()) || '[ 文章无标题 ]';
+            var titleLower = title && title.toLowerCase();
+            // 删除 HTML 标签 和 所有空白字符
+            var content = data.content && data.content.replace(/<[^>]+>/g, '');
+            var contentLower = content && content.toLowerCase();
+            // 删除重复的 /
+            var postURL = data.url && decodeURI(data.url).replace(/\/{2,}/g, '/');
+            // 标题中匹配到的关键词
+            var titleHitSlice = [];
+            // 内容中匹配到的关键词
+            var contentHitSlice = [];
+
+            keywords.forEach(function (keyword) {
+              /**
+              * 获取匹配的关键词的索引
+              * @param {String} keyword 要匹配的关键字
+              * @param {String} text 原文字
+              * @param {Boolean} caseSensitive 是否区分大小写
+              * @param {Number} weight 匹配对象的权重。权重大的优先显示
+              * @return {Array}
+              */
+              function getIndexByword (word, text, caseSensitive, weight) {
+                if (!word || !text) {
+                  return [];
+                };
+
+                var startIndex = 0; // 每次匹配的开始索引
+                var index = -1;     // 匹配到的索引值
+                var result = [];    // 匹配结果
+
+                if (!caseSensitive) {
+                  word = word.toLowerCase();
+                  text = text.toLowerCase();
+                }
+
+                while((index = text.indexOf(word, startIndex)) !== -1) {
+                  var hasMatch = false;
+                  // 索引位置相同的关键词，保留长度较长的
+                  titleHitSlice.forEach(function (hit) {
+                    if (hit.index === index && hit.word.length < word.length) {
+                      hit.word = word;
+                      hasMatch = true;
+                    }
+                  });
+                  startIndex = index + word.length;
+                  !hasMatch && result.push({ index: index, word: word, weight: weight });
+                }
+                return result;
+              }
+              titleHitSlice = titleHitSlice.concat(getIndexByword(keyword, titleLower, false, WEIGHT.title));
+              contentHitSlice = contentHitSlice.concat(getIndexByword(keyword, contentLower, false, WEIGHT.content));
+            });
+
+            var hitTitle = titleHitSlice.length;
+            var hitContent = contentHitSlice.length;
+
+            if (hitTitle > 0 || hitContent > 0) {
+              isMatch = true;
+            }
+            if (isMatch) {
+              ;[titleHitSlice, contentHitSlice].forEach(function (hit) {
+                // 按照匹配文字的索引的递增顺序排序
+                hit.sort(function (left, right) {
+                  return left.index - right.index;
+                });
+              });
+              /**
+              * 给文本中匹配到的关键词添加标记，从而进行高亮显示
+              * @param {String} text 原文本
+              * @param {Array} hitSlice 匹配项的索引信息
+              * @param {Number} start 开始索引
+              * @param {Number} end 结束索引
+              * @return {String}
+              */
+              function highlightKeyword (text, hitSlice, start, end) {
+                if (!text || !hitSlice || !hitSlice.length) {
+                  return;
+                }
+
+                var result = '';
+                var startIndex = start;
+                var endIndex = end;
+                hitSlice.forEach(function (hit) {
+                  if (hit.index < startIndex) {
+                    return;
+                  }
+
+                  var hitWordEnd = hit.index + hit.word.length;
+                  result += text.slice(startIndex, hit.index);
+                  result += '<b>' + text.slice(hit.index, hitWordEnd) + '</b>';
+                  startIndex = hitWordEnd;
+                });
+                result += text.slice(startIndex, endIndex);
+                return result;
+              }
+
+              var postData = {};
+              // 文章总的搜索权重
+              var postWeight = titleHitSlice.length * WEIGHT.title + contentHitSlice.length * WEIGHT.content;
+              // 标记匹配关键词后的标题
+              var postTitle = highlightKeyword(title, titleHitSlice, 0, title.length) || title;
+              // 标记匹配关键词后的内容
+              var postContent;
+              // 显示内容的长度
+              var SHOW_WORD_LENGTH = 200;
+              // 命中关键词前的字符显示长度
+              var SHOW_WORD_FRONT_LENGTH = 20;
+              var SHOW_WORD_END_LENGTH = SHOW_WORD_LENGTH - SHOW_WORD_FRONT_LENGTH;
+
+              // 截取匹配的第一个字符，前后共 200 个字符来显示
+              if (contentHitSlice.length > 0) {
+                var firstIndex = contentHitSlice[0].index;
+                var start = firstIndex > SHOW_WORD_FRONT_LENGTH ? firstIndex - SHOW_WORD_FRONT_LENGTH : 0;
+                var end = firstIndex + SHOW_WORD_END_LENGTH;
+                postContent = highlightKeyword(content, contentHitSlice, start, end);
+              } else { // 未匹配到内容，直接截取前 200 个字符来显示
+                postContent = content.slice(0, SHOW_WORD_LENGTH);
+              }
+              postData.title = postTitle;
+              postData.content = postContent;
+              postData.url = postURL;
+              postData.weight = postWeight;
+              matchPosts.push(postData);
+            }
+          });
+        }
+
+        var resultInnerHtml = '';
+        if (matchPosts.length) {
+          // 按权重递增的顺序排序，使权重大的优先显示
+          matchPosts.sort(function (left, right) {
+            return right.weight - left.weight;
+          });
+          resultInnerHtml += '<ul>';
+          matchPosts.forEach(function (post) {
+            resultInnerHtml += '<li><a class="search-results-title" href="' + post.url + '">';
+            resultInnerHtml += post.title;
+            resultInnerHtml += '</a><div class="search-results-content">';
+            resultInnerHtml += post.content;
+            resultInnerHtml += '</div></li>';
+          });
+          resultInnerHtml += '</ul>';
+        } else {
+          resultInnerHtml += '<div class="search-results-none"><i class="far fa-meh"></i></div>';
+        }
+        $result.html(resultInnerHtml);
+      };
+      $input.on('input', searchPost);
+      $input.on('keyup', function (e) {
+        if (e.keyCode === Stun.utils.codeToKeyCode('Enter')) {
+          searchPost();
+        }
+      });
+    }
+  });
+}
+
+function closeSearch () {
+  $('body').css({ overflow: 'auto' });
+  $('.search-popup').css({ display: 'none' });
+  $('.search-mask').css({ display: 'none' });
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+  Stun.utils.pjaxReloadLocalSearch = function () {
+    $('.header-nav-search').on('click', function (e) {
+      e.stopPropagation();
+      $('body').css('overflow', 'hidden');
+      $('.search-popup')
+        .velocity('stop')
+        .velocity('transition.expandIn', {
+          duration: 300,
+          complete: function () {
+            $('.search-popup input').focus();
+          }
+        });
+      $('.search-mask')
+        .velocity('stop')
+        .velocity('transition.fadeIn', {
+          duration: 300
+        });
+
+      initSearch();
+    });
+    $('.search-mask, .search-close').on('click', function () {
+      closeSearch();
+    });
+    $(document).on('keydown', function (e) {
+      // Escape <=> 27
+      if (e.keyCode === Stun.utils.codeToKeyCode('Escape')) {
+        closeSearch();
+      }
+    });
+  };
+
+  Stun.utils.pjaxReloadLocalSearch();
+}, false);</script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://www.lyzhxlove.top/2020/09/27/Redis%E5%9F%BA%E7%A1%80%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B9%8B%E7%AE%80%E5%8D%95%E5%8A%A8%E6%80%81%E5%AD%97%E7%AC%A6%E4%B8%B2/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="https://cdn.jsdelivr.net/npm/leancloud-storage@latest/dist/av-min.js"></script><script src="https://cdn.jsdelivr.net/npm/valine@latest/dist/Valine.min.js"></script><script data-pjax="">function loadValine () {
+  var GUEST_INFO = ['nick', 'mail', 'link'];
+  var guest_info = 'nick,mail,link';
+
+  guest_info = guest_info.split(',').filter(function(item) {
+    return GUEST_INFO.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#valine-container',
+    appId: '1cY6NvTqmmVrGxl8RW3q2GTc-gzGzoHsz',
+    appKey: '0rl3zyJ99W8OFw3Qx5xPkbbg',
+    notify: true,
+    verify: true,
+    placeholder: 'Please make your own comments!',
+    avatar: 'mp',
+    meta: guest_info,
+    pageSize: '10' || 10,
+    visitor: false,
+    recordIP: false,
+    lang: 'zh-cn' || 'zh-cn',
+    path: window.location.pathname
+  });
+}
+
+if (true) {
+  loadValine();
+} else {
+  window.addEventListener('DOMContentLoaded', loadValine, false);
+}</script><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script type="application/json" src="/search.json"></script><script>if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js?t=1601199782322')
+    .then(function () {console.log('ServiceWorker Register Successfully.')})
+    .catch(function (e) {console.error(e)});
+}
+</script></body></html>

@@ -24,6 +24,8 @@ var precacheUrls = [];
 
   precacheUrls.push('/');
 
+  precacheUrls.push('/2020/09/27/Redis基础数据结构之简单动态字符串/');
+
   precacheUrls.push('/2020/09/15/Java之NIO初探/');
 
   precacheUrls.push('/2020/09/15/SpringBoot-2-x-一个项目中使用RedisTemplate操作多个Redis库/');
