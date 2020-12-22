@@ -6,7 +6,7 @@ $(document).ready(function () {
     .slice(0, -1)
 
   function initTocDisplay () {
-    if ($('.post-body').find(HEADING_SELECTOR)[0]) {
+    if ($('.post-body, .custompage').find(HEADING_SELECTOR)[0]) {
       return
     }
     $('.sidebar-nav').addClass('hide')
@@ -23,7 +23,7 @@ $(document).ready(function () {
   // Automatically expand items in the article directory
   //   based on the scrolling of heading in the article.
   function autoSpreadToc () {
-    var $postBody = $('.post-body')
+    var $postBody = $('.post-body, .custompage')
     var $allTocItem = $('.sidebar-toc li')
     var $headings = $postBody.find(HEADING_SELECTOR)
     var $firsetChild = $headings.first()
@@ -35,7 +35,7 @@ $(document).ready(function () {
       var MIN_HEIGHT_TO_TOP = 5
 
       if (headingTop <= MIN_HEIGHT_TO_TOP) {
-        currHeading = this.getAttribute('id')
+        currHeading = window.encodeURIComponent(this.getAttribute('id'))
       }
     })
 
@@ -53,7 +53,8 @@ $(document).ready(function () {
       return
     }
     if (currHeading !== lastHeading) {
-      var $targetLink = $('.sidebar-toc a[href="#' + currHeading + '"]')
+      var anchor = window.decodeURIComponent(currHeading)
+      var $targetLink = $('.sidebar-toc a[href="#' + anchor + '"]')
       $allTocItem.removeClass('active current')
       $targetLink.parents('li').addClass('active')
       $targetLink.parent().addClass('current')

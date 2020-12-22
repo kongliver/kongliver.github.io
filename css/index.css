@@ -1669,11 +1669,27 @@ body::before {
   font-style: normal;
   background-color: #fff494;
 }
+.search-btns {
+  height: 2rem;
+  text-align: center;
+}
+.search-btns-item {
+  margin: 0 5px;
+  border-radius: 5px;
+  padding: 3px 5px;
+  line-height: 2rem;
+  color: #fff;
+  background-color: #a4d8fa;
+  cursor: pointer;
+}
+.search-btns-item i {
+  margin: 0 3px;
+}
 .search-input input {
   width: 100%;
 }
 .search-results {
-  max-height: calc(80vh - 6rem);
+  max-height: calc(80vh - 8rem);
 }
 .search-results b {
   border-bottom: 1px dashed #f00;
@@ -2055,6 +2071,9 @@ body::before {
 .post-tags-item:hover .post-tags-item__link {
   color: #fc6423;
 }
+.post-reward {
+  margin-bottom: 1rem;
+}
 .post-paginator {
   border-top: 1px solid var(--color-gray-250);
   padding-top: 1rem;
@@ -2405,37 +2424,6 @@ body::before {
   color: var(--color-gray-400);
   border-top: 1px dashed var(--color-gray-300);
 }
-.copyright {
-  position: relative;
-  border: 1px solid var(--color-gray-250);
-  padding: 0.8rem 1rem;
-  width: 100%;
-  -webkit-transition: box-shadow 0.2s ease;
-  -moz-transition: box-shadow 0.2s ease;
-  -o-transition: box-shadow 0.2s ease;
-  -ms-transition: box-shadow 0.2s ease;
-  transition: box-shadow 0.2s ease;
-}
-.copyright:hover {
-  -webkit-box-shadow: 0 0 16px 8px var(--color-gray-250);
-  box-shadow: 0 0 16px 8px var(--color-gray-250);
-}
-.copyright-author__name,
-.copyright-link__name,
-.copyright-notice__name {
-  font-weight: 600;
-  white-space: normal;
-  word-wrap: break-word;
-  word-break: break-word;
-}
-.copyright-author__value,
-.copyright-link__value,
-.copyright-notice__value {
-  color: var(--color-gray-800);
-  white-space: normal;
-  word-wrap: normal;
-  word-break: break-all;
-}
 .back2top {
   position: fixed;
   right: 0;
@@ -2643,6 +2631,80 @@ body::before {
   width: 0;
   height: 0;
 }
+.reward {
+  text-align: center;
+}
+.reward-button {
+  display: inline-block;
+  margin: 1rem 0 1.5rem;
+  border-radius: 6px;
+  padding: 0.2rem 1rem;
+  color: #f5f6f7;
+  background-color: #ff6868;
+  -webkit-transition: background-color 0.2s ease;
+  -moz-transition: background-color 0.2s ease;
+  -o-transition: background-color 0.2s ease;
+  -ms-transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+.reward-button:hover {
+  background-color: #e45c5c;
+}
+.reward-qrcode {
+  display: none;
+}
+.reward-qrcode-alipay,
+.reward-qrcode-wechat {
+  display: inline-block;
+  margin: 0 2rem;
+}
+.reward-qrcode-alipay__img,
+.reward-qrcode-wechat__img {
+  width: 200px;
+  height: 200px;
+}
+.reward-qrcode-alipay__text,
+.reward-qrcode-wechat__text {
+  margin: 0.5rem 0;
+}
+.reward-qrcode-alipay__text {
+  color: #1caceb;
+}
+.reward-qrcode-wechat__text {
+  color: #3cb034;
+}
+.copyright {
+  position: relative;
+  border: 1px solid var(--color-gray-250);
+  padding: 0.8rem 1rem;
+  width: 100%;
+  -webkit-transition: box-shadow 0.2s ease;
+  -moz-transition: box-shadow 0.2s ease;
+  -o-transition: box-shadow 0.2s ease;
+  -ms-transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease;
+}
+.copyright:hover {
+  -webkit-box-shadow: 0 0 16px 8px var(--color-gray-250);
+  box-shadow: 0 0 16px 8px var(--color-gray-250);
+}
+.copyright-author__name,
+.copyright-link__name,
+.copyright-notice__name {
+  font-weight: 600;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+.copyright-author__value,
+.copyright-link__value,
+.copyright-notice__value {
+  color: var(--color-gray-800);
+  white-space: normal;
+  word-wrap: normal;
+  word-break: break-all;
+}
 .gallery img {
   margin-bottom: 10px;
   width: 220px;
@@ -2660,14 +2722,6 @@ body::before {
 .footer .exturl__icon {
   color: #fff;
 }
-:root {
-  --color-gradient-begin: rgba(255,255,255,0);
-  --color-gradient-end: #fff;
-}
-html.nightmode {
-  --color-gradient-begin: rgba(43,49,59,0);
-  --color-gradient-end: #2b313b;
-}
 .comments {
   margin: 1.5rem 0 0;
   width: 100%;
@@ -2675,6 +2729,14 @@ html.nightmode {
   padding: 1rem 2rem;
   background-color: var(--color-card);
   float: right;
+}
+:root {
+  --color-gradient-begin: rgba(255,255,255,0);
+  --color-gradient-end: #fff;
+}
+html.nightmode {
+  --color-gradient-begin: rgba(43,49,59,0);
+  --color-gradient-end: #2b313b;
 }
 #valine-container code,
 #valine-container pre {
@@ -3106,7 +3168,7 @@ html.nightmode {
     max-height: 100vh;
   }
   .search-results {
-    max-height: calc(100vh - 6rem);
+    max-height: calc(100vh - 8rem);
   }
 }
 @media (max-width: 575.98px) {
